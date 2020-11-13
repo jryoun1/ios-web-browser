@@ -7,7 +7,7 @@
 import UIKit
 import WebKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, WKNavigationDelegate {
     
     @IBOutlet weak var webView: WKWebView!
     @IBOutlet weak var urlEnteredTextField: UITextField!
@@ -15,8 +15,13 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        let favoriteURL: String = "https://www.github.com"
-        loadWebPageToWebView(to: favoriteURL)
+        let defaultUrl: String = "https://www.github.com"
+        webView?.navigationDelegate = self
+        loadWebPageToWebView(to: defaultUrl)
+    }
+    
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation: WKNavigation!, withError: Error){
+        showAlert(message: "입력하신 URL이 유효하지 않습니다.")
     }
     
     func convertStringToUrl(input string: String?) -> URL? {
@@ -29,9 +34,15 @@ class ViewController: UIViewController {
             return convertedUrl
         }
         else {
-            showAlert(message: "입력하신 URL이 유효하지 않습니다.")
-            return nil
+            let changedUrl: String = autoChangeUrl(notValidUrl: urlString)
+            let convertedUrl: URL? = URL(string: changedUrl)
+            return convertedUrl
         }
+    }
+    
+    func autoChangeUrl(notValidUrl: String) -> String {
+        let httpAddUrl: String = "https://" + notValidUrl
+        return httpAddUrl
     }
     
     private func loadWebPageToWebView(to string: String?) {
@@ -58,7 +69,6 @@ class ViewController: UIViewController {
         alert.addAction(okAction)
         present(alert, animated: true, completion: nil)
     }
-    
     
     @IBAction func goToEnteredURL(_ sender: UIButton) {
         guard let enteredURL = urlEnteredTextField?.text else {
