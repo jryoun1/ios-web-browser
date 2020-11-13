@@ -12,6 +12,13 @@ class ViewController: UIViewController, WKNavigationDelegate {
     @IBOutlet weak var webView: WKWebView!
     @IBOutlet weak var urlEnteredTextField: UITextField!
     @IBOutlet weak var goButton: UIButton!
+    @IBOutlet weak var goBackButton: UIBarButtonItem!
+    
+    var currentUrlListArray: [URL] = []
+    
+    //문제 1. 잘못된 형식url을 배열에 넣어줄때도 https://를 붙여주어야되고
+    //문제 2. 입력을 통한 이동이 아닌 콘텐츠를 터치해서 눌렀을 경우는 currentUrlListArray에 추가되지 않음
+    //    >> convertStringToUrl속에서 currentUrlListArray.append() 해서 해결
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,6 +29,10 @@ class ViewController: UIViewController, WKNavigationDelegate {
     
     func webView(_ webView: WKWebView, didFailProvisionalNavigation: WKNavigation!, withError: Error){
         showAlert(message: "입력하신 URL이 유효하지 않습니다.")
+    }
+    
+    func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+        print("^^^^^^^^^^    \(currentUrlListArray)     ^^^^^^^^^")
     }
     
     func convertStringToUrl(input string: String?) -> URL? {
@@ -50,8 +61,10 @@ class ViewController: UIViewController, WKNavigationDelegate {
             showAlert(message: "변환할 URL이 존재하지 않습니다.")
             return
         }
+        currentUrlListArray.append(requestedURL)
         let request = URLRequest(url: requestedURL)
         webView.load(request)
+        checkButtonState()
     }
 
     func isUrlStringValid(needCheck notCheckedUrl: String) -> Bool {
@@ -78,19 +91,46 @@ class ViewController: UIViewController, WKNavigationDelegate {
         loadWebPageToWebView(to: enteredURL)
     }
     
-    @IBAction func goBack(_ sender: UIBarButtonItem) {
-        if webView.canGoBack {
-            webView.goBack()
+    func webView(_ webView: WKWebView, didFinish: WKNavigation!) {
+//        print(self.webView.backForwardList.backItem as Any)
+//        print(self.webView.backForwardList.currentItem?.url as Any)
+//        print(self.webView.backForwardList.forwardItem as Any)
+    }
+    
+    func checkButtonState() {
+        if currentUrlListArray.count == 1 {
+            goBackButton.isEnabled = false
+        } else {
+            goBackButton.isEnabled = true
         }
     }
+    
+    @IBAction func goBackCustomize(_ sender: UIBarButtonItem) {
+        if currentUrlListArray.count != 0 {
+            currentUrlListArray.removeLast()
+            guard let backUrl = self.currentUrlListArray.last else { return }
+            //이미 검증되고, 잘못된경우 https://가 붙어서 들어왔으니 loadWebPageToWebView로 안불러도 될듯
+            let request = URLRequest(url: backUrl)
+            webView.load(request)
+            checkButtonState()
+        }
+    }
+    
+    @IBAction func reloadCustomize(_ sender: UIBarButtonItem) {
+        guard let currentUrl = self.webView.backForwardList.currentItem?.url else { return }
+        let currentStringUrl: String = String(describing: currentUrl)
+        loadWebPageToWebView(to: currentStringUrl)
+    }
+    
+//    @IBAction func goBack(_ sender: UIBarButtonItem) {
+//        if webView.canGoBack {
+//            webView.goBack()
+//        }
+//    }
     
     @IBAction func goForward(_ sender: UIBarButtonItem) {
         if webView.canGoForward {
             webView.goForward()
         }
-    }
-    
-    @IBAction func reload(_ sender: UIBarButtonItem) {
-        webView.reload()
     }
 }
